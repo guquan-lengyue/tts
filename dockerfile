@@ -3,7 +3,6 @@ WORKDIR /src/
 COPY . /src/
 ENV GO111MODULE=on
 ENV GOPROXY=https://goproxy.cn
-RUN go mod tidy
 RUN go build -o app.bin
 
 FROM alpine
