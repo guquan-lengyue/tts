@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-var tts = src.NewMsEdgeTTS(false)
+var tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
 
 func main() {
 	r := setRouter()
@@ -56,7 +56,7 @@ func receive(c *gin.Context) {
 			break
 		}
 	}
-	log.Println("repose size: ", size)
+	log.Println("response size: ", size)
 }
 
 func parseBody(b []byte) (*body, error) {

@@ -7,6 +7,7 @@ RUN go build -o app.bin
 
 FROM alpine
 WORKDIR /app
+ENV GIN_MODE=release
 COPY --from=build /src/app.bin .
 ENTRYPOINT ["./app.bin"]
 EXPOSE 2580

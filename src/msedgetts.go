@@ -71,6 +71,7 @@ type MsEdgeTTS struct {
 	rate float32
 	// volume 音量
 	volume float32
+	timer  *time.Timer
 }
 
 func NewMsEdgeTTS(enableLogger bool) *MsEdgeTTS {
@@ -78,6 +79,16 @@ func NewMsEdgeTTS(enableLogger bool) *MsEdgeTTS {
 		enableLogger: enableLogger,
 	}
 	return m
+}
+func (m *MsEdgeTTS) ttl() {
+	if m.timer != nil {
+		m.timer.Stop()
+	}
+	m.timer = time.AfterFunc(4*time.Second, func() {
+		m.ws.Close()
+		m.ws = nil
+		log.Println("静默超时,主动断开链接")
+	})
 }
 
 func (m *MsEdgeTTS) log(a ...any) {
@@ -87,7 +98,7 @@ func (m *MsEdgeTTS) log(a ...any) {
 }
 
 // initWsClient 初始化ws客户端
-func (m *MsEdgeTTS) initWsClient() {
+func (m *MsEdgeTTS) initWsClient() error {
 	header := http.Header{}
 
 	u := url.URL{
@@ -97,20 +108,21 @@ func (m *MsEdgeTTS) initWsClient() {
 		RawQuery: fmt.Sprintf("TrustedClientToken=%s", trustedClientToken),
 	}
 	header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.36")
-	ws, response, err := websocket.DefaultDialer.Dial(u.String(), header)
+	ws, _, err := websocket.DefaultDialer.Dial(u.String(), header)
+	log.Println("tts server connected....")
 	if err != nil {
 		m.log(err)
-		m.log(response)
-		return
+		return err
 	}
 	m.ws = ws
 	// 发送初始化信息
 	m.send(fmt.Sprintf(initMessage, m.outputFormat))
 	m.ws.SetCloseHandler(func(code int, text string) error {
 		m.log("code :", code, "text :", text)
+		m.log("链接已经断开")
 		return nil
 	})
-	// 监听数据
+	return nil
 }
 
 func (m *MsEdgeTTS) SetMetaData(voiceName string, outputFormat OutputFormat, pitch float32, rate float32, volume float32) {
@@ -156,6 +168,7 @@ func (m *MsEdgeTTS) send(message string) {
 	msg := strings.ReplaceAll(message, "\t", "")
 	msg = strings.ReplaceAll(msg, "\n", "\r\n")
 	msg = strings.Trim(msg, "\r\n")
+
 	for i := 0; i < 3 && m.ws == nil; i++ {
 		m.initWsClient()
 	}
@@ -168,6 +181,7 @@ func (m *MsEdgeTTS) send(message string) {
 		m.log(err)
 		return
 	}
+	m.ttl()
 }
 
 // listen 接收数据
@@ -175,7 +189,6 @@ func (m *MsEdgeTTS) listen(out chan []byte) {
 	go func() {
 		for {
 			_, message, err := m.ws.ReadMessage()
-			m.log(string(message))
 			if err != nil {
 				m.log(err)
 				close(out)
