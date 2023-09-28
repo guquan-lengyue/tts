@@ -64,8 +64,14 @@ func parseBody(b []byte) (*body, error) {
 	if err != nil {
 		return nil, err
 	}
+	text := query.Get("tex")
+	text, err = url.QueryUnescape(text)
+	if err != nil {
+		return nil, err
+	}
+	text, err = url.QueryUnescape(text)
 	return &body{
-		Text:      query.Get("tex"),
+		Text:      text,
 		Speed:     float32(speed),
 		VoiceName: query.Get("vn"),
 	}, nil
