@@ -2,13 +2,14 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"ms_edge_tts/src"
 	"net/http"
 	"net/url"
 	"strconv"
 )
 
-var tts = src.NewMsEdgeTTS(true)
+var tts = src.NewMsEdgeTTS(false)
 
 func main() {
 	r := setRouter()
@@ -43,15 +44,19 @@ func receive(c *gin.Context) {
 		return
 	}
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
+	log.Printf("request: %#v \n", form)
 	speechCh := tts.TextToSpeech(form.Text)
 	c.Header("Context-Type", "Content-Type: audio/webm")
+	size := 0
 	for ch := range speechCh {
+		size += len(ch)
 		_, err := c.Writer.Write(ch)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
 			break
 		}
 	}
+	log.Println("repose size: ", size)
 }
 
 func parseBody(b []byte) (*body, error) {
@@ -70,6 +75,9 @@ func parseBody(b []byte) (*body, error) {
 		return nil, err
 	}
 	text, err = url.QueryUnescape(text)
+	if err != nil {
+		return nil, err
+	}
 	return &body{
 		Text:      text,
 		Speed:     float32(speed),
