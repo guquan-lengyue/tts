@@ -4,6 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"ms_edge_tts/src"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 var tts = src.NewMsEdgeTTS(true)
@@ -30,10 +32,15 @@ type body struct {
 }
 
 func receive(c *gin.Context) {
-	var form body
-	err := c.ShouldBind(&form)
+	data, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, map[string]error{"error": err})
+		return
+	}
+	form, err := parseBody(data)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, map[string]error{"error": err})
+		return
 	}
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
 	speechCh := tts.TextToSpeech(form.Text)
@@ -45,4 +52,21 @@ func receive(c *gin.Context) {
 			break
 		}
 	}
+}
+
+func parseBody(b []byte) (*body, error) {
+	query, err := url.ParseQuery(string(b))
+	if err != nil {
+		return nil, err
+	}
+	spd := query.Get("spd")
+	speed, err := strconv.Atoi(spd)
+	if err != nil {
+		return nil, err
+	}
+	return &body{
+		Text:      query.Get("tex"),
+		Speed:     speed,
+		VoiceName: query.Get("vn"),
+	}, nil
 }

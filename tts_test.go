@@ -4,6 +4,7 @@ import (
 	"github.com/go-playground/assert/v2"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 )
@@ -19,4 +20,14 @@ func Test_TTS(t *testing.T) {
 	if err != nil {
 		return
 	}
+}
+
+func Test_UrlParams(t *testing.T) {
+	params := `tex=%25E6%2589%258B%25EF%25BC%258C%25E7%25BA%25B7%25E7%25BA%25B7%25E8%25A2%25AB%25E6%2596%25A9%25E6%259D%2580%25E7%259A%2584%25E4%25B8%2580%25E5%25B9%25B2%25E4%25BA%258C%25E5%2587%2580%25E3%2580%2582&spd=9.5&vn=zh-CN-YunjianNeural`
+	parse, err := url.ParseQuery(params)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(parse.Get("a"))
+
 }
