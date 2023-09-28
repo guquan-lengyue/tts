@@ -26,9 +26,9 @@ func setRouter() *gin.Engine {
 }
 
 type body struct {
-	Text      string `json:"tex"`
-	Speed     int    `json:"spd"`
-	VoiceName string `json:"vn"`
+	Text      string  `json:"tex"`
+	Speed     float32 `json:"spd"`
+	VoiceName string  `json:"vn"`
 }
 
 func receive(c *gin.Context) {
@@ -60,13 +60,13 @@ func parseBody(b []byte) (*body, error) {
 		return nil, err
 	}
 	spd := query.Get("spd")
-	speed, err := strconv.Atoi(spd)
+	speed, err := strconv.ParseFloat(spd, 10)
 	if err != nil {
 		return nil, err
 	}
 	return &body{
 		Text:      query.Get("tex"),
-		Speed:     speed,
+		Speed:     float32(speed),
 		VoiceName: query.Get("vn"),
 	}, nil
 }

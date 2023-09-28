@@ -66,11 +66,11 @@ type MsEdgeTTS struct {
 	// voiceName 朗读者名称
 	voiceName string
 	// pitch 声音码率
-	pitch int
+	pitch float32
 	// rate 朗读速度
-	rate int
+	rate float32
 	// volume 音量
-	volume int
+	volume float32
 }
 
 func NewMsEdgeTTS(enableLogger bool) *MsEdgeTTS {
@@ -113,7 +113,7 @@ func (m *MsEdgeTTS) initWsClient() {
 	// 监听数据
 }
 
-func (m *MsEdgeTTS) SetMetaData(voiceName string, outputFormat OutputFormat, pitch int, rate int, volume int) {
+func (m *MsEdgeTTS) SetMetaData(voiceName string, outputFormat OutputFormat, pitch float32, rate float32, volume float32) {
 	oldVoiceName := m.voiceName
 	oldOutputFormat := m.outputFormat
 	oldPitch := m.pitch
