@@ -3,6 +3,7 @@ module ms_edge_tts
 go 1.20
 
 require (
+	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/gorilla/websocket v1.5.0

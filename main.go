@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"log"
 	"ms_edge_tts/src"
@@ -13,6 +14,7 @@ var tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
 
 func main() {
 	r := setRouter()
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	err := r.Run("0.0.0.0:2580")
 	if err != nil {
 		panic(err)
