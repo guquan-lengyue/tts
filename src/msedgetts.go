@@ -41,7 +41,7 @@ Path:ssml
 
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="%s">
 	<voice name="%s">
-		<prosody pitch='+%dHz' rate ='+%d%%' volume='+%d%%'>
+		<prosody pitch='+%fHz' rate ='+%f%%' volume='+%f%%'>
 			%s
 		</prosody>
 	</voice>
