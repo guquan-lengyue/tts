@@ -14,7 +14,7 @@ var tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
 
 func main() {
 	r := setRouter()
-	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.Use(gzip.Gzip(gzip.BestCompression))
 	err := r.Run("0.0.0.0:2580")
 	if err != nil {
 		panic(err)
