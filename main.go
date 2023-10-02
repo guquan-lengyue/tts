@@ -4,6 +4,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"log"
+	"ms_edge_tts/assets"
 	"ms_edge_tts/src"
 	"net/http"
 	"net/url"
@@ -47,18 +48,26 @@ func receive(c *gin.Context) {
 	}
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
-	speechCh := tts.TextToSpeech(form.Text)
-	c.Header("Context-Type", "Content-Type: audio/webm")
 	size := 0
-	for ch := range speechCh {
-		size += len(ch)
-		_, err := c.Writer.Write(ch)
-		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
-			break
+	for i := 0; i < 3 && size == 0; i++ {
+		speechCh := tts.TextToSpeech(form.Text)
+		c.Header("Context-Type", "Content-Type: audio/webm")
+		for ch := range speechCh {
+			size += len(ch)
+			_, err := c.Writer.Write(ch)
+			if err != nil {
+				c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
+				break
+			}
 		}
 	}
 	log.Println("response size: ", size)
+	if size == 0 {
+		_, err = c.Writer.Write(assets.ErrorTttWebm)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
+		}
+	}
 }
 
 func parseBody(b []byte) (*body, error) {

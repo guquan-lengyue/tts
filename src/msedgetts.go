@@ -84,7 +84,7 @@ func (m *MsEdgeTTS) ttl() {
 	if m.timer != nil {
 		m.timer.Stop()
 	}
-	m.timer = time.AfterFunc(4*time.Second, func() {
+	m.timer = time.AfterFunc(28*time.Second, func() {
 		m.ws.Close()
 		m.ws = nil
 		log.Println("静默超时,主动断开链接")
