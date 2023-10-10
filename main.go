@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -14,9 +16,13 @@ import (
 var tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
 
 func main() {
+	port := flag.Int("port", 2580, "listen port")
+	host := flag.String("host", "0.0.0.0", "listen host")
+	flag.Parse()
+
 	r := setRouter()
 	r.Use(gzip.Gzip(gzip.BestCompression))
-	err := r.Run("0.0.0.0:2580")
+	err := r.Run(fmt.Sprintf("%s:%d", *host, *port))
 	if err != nil {
 		panic(err)
 	}
