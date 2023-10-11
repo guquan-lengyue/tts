@@ -50,8 +50,8 @@ Path:ssml
 
 var voicesUrl = fmt.Sprintf(`https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=%s`, trustedClientToken)
 
-const heartBeatTime = 3 * time.Second
-const overTime = 1 * time.Minute
+const heartBeatTime = 28 * time.Second
+const overTime = 10 * time.Minute
 
 type MsEdgeTTS struct {
 	// enableLogger 是否打印日志
