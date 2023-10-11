@@ -50,6 +50,9 @@ Path:ssml
 
 var voicesUrl = fmt.Sprintf(`https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=%s`, trustedClientToken)
 
+const heartBeatTime = 3 * time.Second
+const overTime = 1 * time.Minute
+
 type MsEdgeTTS struct {
 	// enableLogger 是否打印日志
 	enableLogger bool
@@ -59,6 +62,8 @@ type MsEdgeTTS struct {
 	queue map[string]bytes.Buffer
 	// startTime
 	startTime time.Duration
+	// ws overtime
+	overTime time.Duration
 	// ws ws客户端
 	ws *websocket.Conn
 	// voiceLocale 声源地, CN US这些
@@ -80,14 +85,36 @@ func NewMsEdgeTTS(enableLogger bool) *MsEdgeTTS {
 	}
 	return m
 }
+func (m *MsEdgeTTS) closeMs() {
+	m.timer.Stop()
+	m.ws.Close()
+	m.ws = nil
+}
 func (m *MsEdgeTTS) ttl() {
 	if m.timer != nil {
 		m.timer.Stop()
 	}
-	m.timer = time.AfterFunc(28*time.Second, func() {
-		m.ws.Close()
-		m.ws = nil
-		log.Println("静默超时,主动断开链接")
+	m.log("overTime left", m.overTime)
+	m.timer = time.AfterFunc(heartBeatTime, func() {
+		m.overTime -= heartBeatTime
+		if m.overTime <= 0 {
+			m.closeMs()
+			log.Println("静默超时,主动断开链接")
+			return
+		}
+		go func() {
+			speech := m.sendSsmlTemplate(fmt.Sprintf("hello %d", m.overTime))
+			l := 0
+			for i := range speech {
+				l += len(i)
+			}
+			if l <= 0 {
+				m.closeMs()
+				m.log("heart beat error, ws close")
+				return
+			}
+			m.log("heart beat ...")
+		}()
 	})
 }
 
@@ -156,6 +183,11 @@ func (m *MsEdgeTTS) SetMetaData(voiceName string, outputFormat OutputFormat, pit
 }
 
 func (m *MsEdgeTTS) TextToSpeech(input string) chan []byte {
+	m.overTime = overTime
+	return m.sendSsmlTemplate(input)
+}
+
+func (m *MsEdgeTTS) sendSsmlTemplate(input string) chan []byte {
 	ssmlTemplate := m.ssmlTemplate(input)
 	m.send(ssmlTemplate)
 	buf := make(chan []byte)
