@@ -1,12 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"log"
-	"ms_edge_tts/assets"
 	"ms_edge_tts/src"
 	"net/http"
 	"net/url"
@@ -52,6 +52,16 @@ func receive(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, map[string]error{"error": err})
 		return
 	}
+	for i := 0; i < 3; i++ {
+		err = getTts(form, c)
+		if err == nil {
+			break
+		}
+		tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
+	}
+}
+
+func getTts(form *body, c *gin.Context) error {
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
 	size := 0
@@ -69,11 +79,9 @@ func receive(c *gin.Context) {
 	}
 	log.Println("response size: ", size)
 	if size == 0 {
-		_, err = c.Writer.Write(assets.ErrorTttWebm)
-		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
-		}
+		return errors.New("tts错错误")
 	}
+	return nil
 }
 
 func parseBody(b []byte) (*body, error) {

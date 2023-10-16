@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -49,6 +50,7 @@ Path:ssml
 `
 
 var voicesUrl = fmt.Sprintf(`https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=%s`, trustedClientToken)
+var lock sync.Mutex
 
 type MsEdgeTTS struct {
 	// enableLogger 是否打印日志
@@ -75,6 +77,8 @@ type MsEdgeTTS struct {
 }
 
 func NewMsEdgeTTS(enableLogger bool) *MsEdgeTTS {
+	lock.Lock()
+	defer lock.Unlock()
 	m := &MsEdgeTTS{
 		enableLogger: enableLogger,
 	}
