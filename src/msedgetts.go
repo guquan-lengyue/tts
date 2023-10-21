@@ -53,7 +53,7 @@ var voicesUrl = fmt.Sprintf(`https://speech.platform.bing.com/consumer/speech/sy
 var lock sync.Mutex
 
 const heartBeatTime = 28 * time.Second
-const overTime = 10 * time.Minute
+const overTime = 15 * time.Minute
 
 type MsEdgeTTS struct {
 	// enableLogger 是否打印日志
