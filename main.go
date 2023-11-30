@@ -21,7 +21,7 @@ const clientNum = 10
 
 func init() {
 	for i := 0; i < clientNum; i++ {
-		ttsClients = append(ttsClients, src.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), false))
+		ttsClients = append(ttsClients, src.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
 	}
 }
 
