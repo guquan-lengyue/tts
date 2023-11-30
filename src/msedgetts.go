@@ -112,6 +112,7 @@ func (m *MsEdgeTTS) ttl() {
 		go func() {
 			defer func() {
 				if recover() != nil {
+					log.Println(m.clientName, "客户端错误, 正则重启客户端")
 					m.initWsClient()
 				}
 			}()
@@ -149,7 +150,7 @@ func (m *MsEdgeTTS) initWsClient() error {
 	}
 	header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.36")
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), header)
-	log.Println("tts server connected....")
+	log.Println(m.clientName, "tts server connected....")
 	if err != nil {
 		m.log(err)
 		return err
