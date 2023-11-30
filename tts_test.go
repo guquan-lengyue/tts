@@ -7,16 +7,23 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 const params = `tex=%25E6%2589%258B%25EF%25BC%258C%25E7%25BA%25B7%25E7%25BA%25B7%25E8%25A2%25AB%25E6%2596%25A9%25E6%259D%2580%25E7%259A%2584%25E4%25B8%2580%25E5%25B9%25B2%25E4%25BA%258C%25E5%2587%2580%25E3%2580%2582&spd=9.5&vn=zh-CN-YunjianNeural`
 
 func Test_TTS(t *testing.T) {
 	r := setRouter()
-	request(t, r)
-	time.Sleep(time.Minute + time.Second)
-	request(t, r)
+	ch := make(chan struct{}, 5)
+	go func() {
+		for {
+			<-ch
+			request(t, r)
+		}
+	}()
+	for {
+		ch <- struct{}{}
+	}
+
 }
 
 func request(t *testing.T, r *gin.Engine) {
@@ -25,6 +32,7 @@ func request(t *testing.T, r *gin.Engine) {
 	req, _ := http.NewRequest("POST", "/", reader)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, 200, w.Code)
-
-	t.Log("接收到文件大小: ", len(w.Body.Bytes()))
+	size := len(w.Body.Bytes())
+	assert.Equal(t, size > 0, true)
+	t.Log("接收到文件大小: ", size)
 }

@@ -79,13 +79,16 @@ type MsEdgeTTS struct {
 	// volume 音量
 	volume float32
 	timer  *time.Timer
+	// 客户端名称
+	clientName string
 }
 
-func NewMsEdgeTTS(enableLogger bool) *MsEdgeTTS {
+func NewMsEdgeTTS(clientName string, enableLogger bool) *MsEdgeTTS {
 	lock.Lock()
 	defer lock.Unlock()
 	m := &MsEdgeTTS{
 		enableLogger: enableLogger,
+		clientName:   clientName,
 	}
 	return m
 }
@@ -107,6 +110,11 @@ func (m *MsEdgeTTS) ttl() {
 			return
 		}
 		go func() {
+			defer func() {
+				if recover() != nil {
+					m.initWsClient()
+				}
+			}()
 			speech := m.sendSsmlTemplate(fmt.Sprintf("hello %d", m.overTime))
 			l := 0
 			for i := range speech {
@@ -124,6 +132,7 @@ func (m *MsEdgeTTS) ttl() {
 
 func (m *MsEdgeTTS) log(a ...any) {
 	if m.enableLogger {
+		log.Println(m.clientName + "--------------------")
 		log.Println(a...)
 	}
 }
@@ -205,11 +214,13 @@ func (m *MsEdgeTTS) send(message string) {
 	msg = strings.ReplaceAll(msg, "\n", "\r\n")
 	msg = strings.Trim(msg, "\r\n")
 
-	for i := 0; i < 3 && m.ws == nil; i++ {
+	for m.ws == nil {
 		m.initWsClient()
+		time.Sleep(3 * time.Second)
 	}
 	if m.ws == nil {
-		panic(errors.New("无法建立链接"))
+		m.log(errors.New("无法建立链接"))
+		return
 	}
 
 	err := m.ws.WriteMessage(websocket.TextMessage, []byte(msg))

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -11,9 +12,18 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync/atomic"
 )
 
-var tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
+var ttsClients []*src.MsEdgeTTS
+
+const clientNum = 10
+
+func init() {
+	for i := 0; i < clientNum; i++ {
+		ttsClients = append(ttsClients, src.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), false))
+	}
+}
 
 func main() {
 	port := flag.Int("port", 2580, "listen port")
@@ -41,6 +51,8 @@ type body struct {
 	VoiceName string  `json:"vn"`
 }
 
+var ban int32 = 0
+
 func receive(c *gin.Context) {
 	data, err := c.GetRawData()
 	if err != nil {
@@ -52,35 +64,38 @@ func receive(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, map[string]error{"error": err})
 		return
 	}
-	for i := 0; i < 3; i++ {
-		err = getTts(form, c)
+	for {
+		atomic.StoreInt32(&ban, (ban+1)%clientNum)
+		err = getTts(form, c, ttsClients[ban])
 		if err == nil {
 			break
 		}
-		tts = src.NewMsEdgeTTS(gin.Mode() == gin.DebugMode)
 	}
 }
 
-func getTts(form *body, c *gin.Context) error {
+func getTts(form *body, c *gin.Context, tts *src.MsEdgeTTS) error {
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
 	size := 0
 	for i := 0; i < 3 && size == 0; i++ {
 		speechCh := tts.TextToSpeech(form.Text)
 		c.Header("Context-Type", "Content-Type: audio/webm")
+		audio := bytes.Buffer{}
 		for ch := range speechCh {
 			size += len(ch)
-			_, err := c.Writer.Write(ch)
-			if err != nil {
-				c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
-				break
-			}
+			audio.Write(ch)
+		}
+		_, err := c.Writer.Write(audio.Bytes())
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
+			break
 		}
 	}
 	log.Println("response size: ", size)
 	if size == 0 {
 		return errors.New("tts错错误")
 	}
+
 	return nil
 }
 
