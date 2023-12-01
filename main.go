@@ -5,14 +5,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
 	"log"
 	"ms_edge_tts/src"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"sync/atomic"
+
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
 )
 
 var ttsClients []*src.MsEdgeTTS
@@ -99,13 +101,19 @@ func getTts(form *body, c *gin.Context, tts *src.MsEdgeTTS) error {
 	return nil
 }
 
+var chineseReg = regexp.MustCompile(`\p{Han}`)
+
 func parseBody(b []byte) (*body, error) {
 	query, err := url.ParseQuery(string(b))
 	if err != nil {
 		return nil, err
 	}
 	spd := query.Get("spd")
-	speed, err := strconv.ParseFloat(spd, 10)
+	speed, err := strconv.ParseFloat(spd, 32)
+	rst := &body{
+		Speed:     float32(speed),
+		VoiceName: query.Get("vn"),
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -114,13 +122,14 @@ func parseBody(b []byte) (*body, error) {
 	if err != nil {
 		return nil, err
 	}
+	if chineseReg.MatchString(text) {
+		rst.Text = text
+		return rst, nil
+	}
 	text, err = url.QueryUnescape(text)
 	if err != nil {
 		return nil, err
 	}
-	return &body{
-		Text:      text,
-		Speed:     float32(speed),
-		VoiceName: query.Get("vn"),
-	}, nil
+	rst.Text = text
+	return rst, nil
 }
