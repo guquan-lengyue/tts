@@ -235,6 +235,11 @@ func (m *MsEdgeTTS) send(message string) {
 // listen 接收数据
 func (m *MsEdgeTTS) listen(out chan []byte) {
 	go func() {
+		defer func() {
+			if recover() != nil {
+				m.log(recover())
+			}
+		}()
 		for {
 			_, message, err := m.ws.ReadMessage()
 			if err != nil {
