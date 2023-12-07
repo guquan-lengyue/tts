@@ -83,10 +83,10 @@ type MsEdgeTTS struct {
 	clientName string
 }
 
-func NewMsEdgeTTS(clientName string, enableLogger bool) *MsEdgeTTS {
+func NewMsEdgeTTS(clientName string, enableLogger bool) ITts {
 	lock.Lock()
 	defer lock.Unlock()
-	m := &MsEdgeTTS{
+	var m ITts = &MsEdgeTTS{
 		enableLogger: enableLogger,
 		clientName:   clientName,
 	}

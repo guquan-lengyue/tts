@@ -17,22 +17,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var ttsClients []*src.MsEdgeTTS
+var ttsClients []src.ITts
 
 const clientNum = 10
 
-func init() {
+func initClients(clientType string) {
 	for i := 0; i < clientNum; i++ {
-		ttsClients = append(ttsClients, src.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+		if clientType == "baidu" {
+			ttsClients = append(ttsClients, src.NewBaiduTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+		}
+		if clientType == "mstts" {
+			ttsClients = append(ttsClients, src.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+		}
 	}
 }
 
 func main() {
 	port := flag.Int("port", 2580, "listen port")
 	host := flag.String("host", "0.0.0.0", "listen host")
+	clientType := flag.String("ct", "mstts", "client type")
 	flag.Parse()
 
-	r := setRouter()
+	r := setRouter(*clientType)
 	r.Use(gzip.Gzip(gzip.BestCompression))
 	err := r.Run(fmt.Sprintf("%s:%d", *host, *port))
 	if err != nil {
@@ -40,7 +46,9 @@ func main() {
 	}
 }
 
-func setRouter() *gin.Engine {
+func setRouter(clientType string) *gin.Engine {
+	initClients(clientType)
+
 	r := gin.Default()
 
 	r.POST("", receive)
@@ -75,7 +83,7 @@ func receive(c *gin.Context) {
 	}
 }
 
-func getTts(form *body, c *gin.Context, tts *src.MsEdgeTTS) error {
+func getTts(form *body, c *gin.Context, tts src.ITts) error {
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
 	size := 0
