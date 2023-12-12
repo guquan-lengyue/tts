@@ -16,6 +16,12 @@ type BaiduTTS struct {
 	enableLogger bool
 	// 客户端名称
 	clientName string
+	// rate 朗读速度
+	rate int
+	// volume 音量
+	volume float32
+	// 声音名称
+	voiceName string
 }
 
 type bodyContent struct {
@@ -35,7 +41,9 @@ func NewBaiduTTS(clientName string, enableLogger bool) ITts {
 }
 
 func (t *BaiduTTS) SetMetaData(voiceName string, outputFormat OutputFormat, pitch float32, rate float32, volume float32) {
-
+	t.rate = int(rate)
+	t.volume = volume
+	t.voiceName = voiceName
 }
 func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
 	bch := make(chan []byte, 1)
@@ -44,8 +52,8 @@ func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
 	method := "POST"
 	s := urlUtil.QueryEscape(input)
 	s = urlUtil.QueryEscape(s)
-
-	payload := strings.NewReader(fmt.Sprintf("type=tns&per=4003&spd=5&pit=5&vol=5&aue=6&tex=%s", s))
+	form := fmt.Sprintf("type=tns&per=%s&spd=%d&pit=5&vol=5&aue=6&tex=%s", t.voiceName, t.rate, s)
+	payload := strings.NewReader(form)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, payload)
