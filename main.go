@@ -35,7 +35,7 @@ func initClients(clientType string) {
 func main() {
 	port := flag.Int("port", 2580, "listen port")
 	host := flag.String("host", "0.0.0.0", "listen host")
-	clientType := flag.String("ct", "mstts", "client type")
+	clientType := flag.String("ct", "baidu", "client type")
 	flag.Parse()
 
 	r := setRouter(*clientType)

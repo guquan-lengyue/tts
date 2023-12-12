@@ -34,6 +34,9 @@ func request(t *testing.T, r *gin.Engine) {
 
 func Test_BaiduTts(t *testing.T) {
 	tts := src.BaiduTTS{}
-	audio := tts.TextToSpeech("你好世界")
-	fmt.Println(<-audio)
+	audio := tts.TextToSpeech("你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界")
+	for a := range audio {
+		fmt.Println(a)
+	}
+	time.Sleep(1 * time.Minute)
 }
