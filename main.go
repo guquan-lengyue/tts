@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"ms_edge_tts/data"
 	"ms_edge_tts/src"
 	"net/http"
 	"net/url"
@@ -36,7 +37,13 @@ func main() {
 	port := flag.Int("port", 2580, "listen port")
 	host := flag.String("host", "0.0.0.0", "listen host")
 	clientType := flag.String("ct", "baidu", "client type")
+	dbHost := flag.String("dbhost", "", "db host")
+	dbUsr := flag.String("dbusr", "", "db usr")
+	dbPass := flag.String("dbpass", "", "db pass")
+	dbName := flag.String("dbname", "", "db name")
 	flag.Parse()
+
+	data.InitDb(*dbHost, *dbUsr, *dbPass, *dbName)
 
 	r := setRouter(*clientType)
 	r.Use(gzip.Gzip(gzip.BestCompression))
@@ -87,10 +94,11 @@ func getTts(form *body, c *gin.Context, tts src.ITts) error {
 	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
 	size := 0
+	audio := bytes.Buffer{}
 	for i := 0; i < 3 && size == 0; i++ {
+		audio.Reset()
 		speechCh := tts.TextToSpeech(form.Text)
 		c.Header("Context-Type", "Content-Type: audio/webm")
-		audio := bytes.Buffer{}
 		for ch := range speechCh {
 			size += len(ch)
 			audio.Write(ch)
@@ -102,6 +110,7 @@ func getTts(form *body, c *gin.Context, tts src.ITts) error {
 		}
 	}
 	log.Println("response size: ", size)
+	go data.Save(form.Text, audio.Bytes())
 	if size == 0 {
 		return errors.New("tts错错误")
 	}
