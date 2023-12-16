@@ -34,7 +34,7 @@ type TtsLog struct {
 }
 
 func Save(text string, content []byte) {
-	if DB == nil {
+	if DB == nil || len(content) == 0 || len(text) == 0 {
 		return
 	}
 	tts := TtsLog{text, content}
