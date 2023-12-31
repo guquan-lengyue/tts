@@ -1,4 +1,4 @@
-module ms_edge_tts
+module github.com/guquan-lengyue/ms_edge_tts
 
 go 1.20
 

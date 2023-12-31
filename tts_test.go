@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"ms_edge_tts/src"
+	"github.com/guquan-lengyue/ms_edge_tts/src"
 	"net/http"
 	"net/http/httptest"
 	"testing"
