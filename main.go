@@ -45,9 +45,13 @@ func main() {
 
 	data.InitDb(*dbHost, *dbUsr, *dbPass, *dbName)
 
-	r := setRouter(*clientType)
+	Service(*clientType, *host, *port)
+}
+
+func Service(clientType, host string, port int) {
+	r := setRouter(clientType)
 	r.Use(gzip.Gzip(gzip.BestCompression))
-	err := r.Run(fmt.Sprintf("%s:%d", *host, *port))
+	err := r.Run(fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		panic(err)
 	}
