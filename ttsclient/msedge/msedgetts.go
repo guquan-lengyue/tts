@@ -1,4 +1,4 @@
-package src
+package msedge
 
 import (
 	"bytes"
@@ -6,13 +6,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
+	src "github.com/guquan-lengyue/ms_edge_tts/ttsclient"
 )
 
 const trustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
@@ -49,27 +51,22 @@ Path:ssml
 </speak>
 `
 
-var voicesUrl = fmt.Sprintf(`https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=%s`, trustedClientToken)
 var lock sync.Mutex
 
 const heartBeatTime = 28 * time.Second
 const overTime = 15 * time.Minute
+
+var _ src.ITtsClient = (*MsEdgeTTS)(nil)
 
 type MsEdgeTTS struct {
 	// enableLogger 是否打印日志
 	enableLogger bool
 	// outputFormat 音频格式
 	outputFormat OutputFormat
-	// queue 队列缓存
-	queue map[string]bytes.Buffer
-	// startTime
-	startTime time.Duration
 	// ws overtime
 	overTime time.Duration
 	// ws ws客户端
 	ws *websocket.Conn
-	// voiceLocale 声源地, CN US这些
-	voiceLocale string
 	// voiceName 朗读者名称
 	voiceName string
 	// pitch 声音码率
@@ -83,14 +80,13 @@ type MsEdgeTTS struct {
 	clientName string
 }
 
-func NewMsEdgeTTS(clientName string, enableLogger bool) ITts {
+func NewMsEdgeTTS(clientName string, enableLogger bool) src.ITtsClient {
 	lock.Lock()
 	defer lock.Unlock()
-	var m ITts = &MsEdgeTTS{
+	return &MsEdgeTTS{
 		enableLogger: enableLogger,
 		clientName:   clientName,
 	}
-	return m
 }
 func (m *MsEdgeTTS) closeMs() {
 	m.timer.Stop()
@@ -141,7 +137,6 @@ func (m *MsEdgeTTS) log(a ...any) {
 // initWsClient 初始化ws客户端
 func (m *MsEdgeTTS) initWsClient() error {
 	header := http.Header{}
-
 	u := url.URL{
 		Scheme:   "wss",
 		Host:     "speech.platform.bing.com",
@@ -166,7 +161,9 @@ func (m *MsEdgeTTS) initWsClient() error {
 	return nil
 }
 
-func (m *MsEdgeTTS) SetMetaData(voiceName string, outputFormat OutputFormat, pitch float32, rate float32, volume float32) {
+func (m *MsEdgeTTS) SetClient(voiceName string, rate float32, volume float32) {
+	outputFormat := WEBM_24KHZ_16BIT_MONO_OPUS
+	var pitch float32 = 200
 	oldVoiceName := m.voiceName
 	oldOutputFormat := m.outputFormat
 	oldPitch := m.pitch

@@ -1,4 +1,4 @@
-package src
+package baidu
 
 import (
 	"encoding/base64"
@@ -10,7 +10,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	src "github.com/guquan-lengyue/ms_edge_tts/ttsclient"
 )
+
+var _ src.ITtsClient = (*BaiduTTS)(nil)
 
 type BaiduTTS struct {
 	// enableLogger 是否打印日志
@@ -25,6 +29,8 @@ type BaiduTTS struct {
 	voiceName string
 }
 
+var lock sync.Mutex
+
 const baiduHost = "https://ai.baidu.com/aidemo"
 const method = "POST"
 
@@ -34,17 +40,16 @@ type bodyContent struct {
 	Data  string `json:"data"`
 }
 
-func NewBaiduTTS(clientName string, enableLogger bool) ITts {
+func NewBaiduTTS(clientName string, enableLogger bool) src.ITtsClient {
 	lock.Lock()
 	defer lock.Unlock()
-	var m ITts = &BaiduTTS{
+	return &BaiduTTS{
 		enableLogger: enableLogger,
 		clientName:   clientName,
 	}
-	return m
 }
 
-func (t *BaiduTTS) SetMetaData(voiceName string, _ OutputFormat, _ float32, rate float32, volume float32) {
+func (t *BaiduTTS) SetClient(voiceName string, rate float32, volume float32) {
 	t.rate = int(rate)
 	t.volume = volume
 	t.voiceName = voiceName

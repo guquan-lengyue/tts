@@ -1,4 +1,4 @@
-package src
+package msedge
 
 type OutputFormat string
 

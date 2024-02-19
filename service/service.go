@@ -4,29 +4,31 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/guquan-lengyue/ms_edge_tts/data"
-	"github.com/guquan-lengyue/ms_edge_tts/src"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"sync/atomic"
+
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
+	"github.com/guquan-lengyue/ms_edge_tts/ttsclient"
+	"github.com/guquan-lengyue/ms_edge_tts/ttsclient/baidu"
+	"github.com/guquan-lengyue/ms_edge_tts/ttsclient/msedge"
 )
 
-var ttsClients []src.ITts
+var ttsClients []ttsclient.ITtsClient
 
 const clientNum = 10
 
 func initClients(clientType string) {
 	for i := 0; i < clientNum; i++ {
 		if clientType == "baidu" {
-			ttsClients = append(ttsClients, src.NewBaiduTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+			ttsClients = append(ttsClients, baidu.NewBaiduTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
 		}
 		if clientType == "mstts" {
-			ttsClients = append(ttsClients, src.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+			ttsClients = append(ttsClients, msedge.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
 		}
 	}
 }
@@ -77,8 +79,8 @@ func receive(c *gin.Context) {
 	}
 }
 
-func getTts(form *body, c *gin.Context, tts src.ITts) error {
-	tts.SetMetaData(form.VoiceName, src.WEBM_24KHZ_16BIT_MONO_OPUS, 0, form.Speed, 0)
+func getTts(form *body, c *gin.Context, tts ttsclient.ITtsClient) error {
+	tts.SetClient(form.VoiceName, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
 	size := 0
 	audio := bytes.Buffer{}
@@ -97,7 +99,6 @@ func getTts(form *body, c *gin.Context, tts src.ITts) error {
 		}
 	}
 	log.Println("response size: ", size)
-	go data.Save(form.Text, audio.Bytes())
 	if size == 0 {
 		return errors.New("tts错错误")
 	}
