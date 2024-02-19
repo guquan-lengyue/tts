@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	urlUtil "net/url"
 	"strings"
@@ -29,8 +30,6 @@ type BaiduTTS struct {
 	voiceName string
 }
 
-var lock sync.Mutex
-
 const baiduHost = "https://ai.baidu.com/aidemo"
 const method = "POST"
 
@@ -40,26 +39,44 @@ type bodyContent struct {
 	Data  string `json:"data"`
 }
 
-func NewBaiduTTS(clientName string, enableLogger bool) src.ITtsClient {
-	lock.Lock()
-	defer lock.Unlock()
+// NewClient 用于创建百度tts客户端实例
+// clientName 客户端标识 主要用于打印日志时区分日志来源
+// enableLogger 是否打印相识日志标识
+func NewClient(clientName string, enableLogger bool) src.ITtsClient {
 	return &BaiduTTS{
 		enableLogger: enableLogger,
 		clientName:   clientName,
 	}
 }
 
+func (m *BaiduTTS) log(a ...any) {
+	if m.enableLogger {
+		log.Print(m.clientName + "----")
+		log.Println(a...)
+	}
+}
+
 func (t *BaiduTTS) SetClient(voiceName string, rate float32, volume float32) {
+	// 百度tts朗读速度只有1-10 10级
 	t.rate = int(rate)
+	if t.rate > 10 {
+		t.rate = 10
+	}
+	if t.rate < 0 {
+		t.rate = 0
+	}
 	t.volume = volume
 	t.voiceName = voiceName
 }
 
 func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
-	bch := make(chan []byte, 1)
+	// 百度tts试用接口最大字数为200, 需要将input分段
 	text := []rune(input)
 	textLength := len(text)
-	rst := make([]*[]byte, 0)
+	// ttsRst 是input分段后返回的结果, ttsRst[0]为input第一段的内音频内容
+	// 主要是为了分段后异步请求tts且能保持返回结果为请求时的顺序, 保持朗读内容顺序正常
+	ttsRst := make([]*[]byte, 0)
+	// wg 用于等待所有input分段tts请求结束
 	var wg sync.WaitGroup
 	for idx := 0; idx < textLength; idx += 200 {
 		end := idx + 200
@@ -67,25 +84,37 @@ func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
 			end = textLength
 		}
 		begin := idx
+		// region 异步请求input分段tts内容, 将内容按顺序存放到相应位置
+		var buffer = new([]byte)
+		ttsRst = append(ttsRst, buffer)
 		wg.Add(1)
-		var buffer *[]byte = new([]byte)
-		rst = append(rst, buffer)
 		go func() {
 			defer wg.Done()
-			*buffer = t.getRst(string(text[begin:end]))
+			*buffer = t.tts(string(text[begin:end]))
 		}()
+		// endregion
 	}
+	// 同步等待tts数据
+	bch := make(chan []byte, 1)
 	go func() {
 		wg.Wait()
-		for i := range rst {
-			bch <- *rst[i]
+		for i := range ttsRst {
+			tts := *ttsRst[i]
+			// 过滤掉返回值为nil的tts数据
+			if len(tts) > 0 {
+				bch <- tts
+			}
 		}
 		close(bch)
 	}()
 	return bch
 }
 
-func (t *BaiduTTS) getRst(text string) []byte {
+// tts 请求百度tts试用接口将text转为音频
+// 当发生错误, 或者接口返回音频内容为空时, 返回值为nil
+func (t *BaiduTTS) tts(text string) []byte {
+	// 根据百度tts接口文档, 将text内容进行2次url编码
+	// 2次url编码为了将特殊字符能够正确传递
 	s := urlUtil.QueryEscape(text)
 	s = urlUtil.QueryEscape(s)
 
@@ -96,7 +125,8 @@ func (t *BaiduTTS) getRst(text string) []byte {
 	req, err := http.NewRequest(method, baiduHost, payload)
 
 	if err != nil {
-		fmt.Println(err)
+		t.log(err)
+		return nil
 	}
 	timestamp := time.Now().UnixMicro()
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0")
@@ -107,26 +137,36 @@ func (t *BaiduTTS) getRst(text string) []byte {
 	req.Header.Add("Connection", "keep-alive")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	res, err := client.Do(req)
-	defer res.Body.Close()
+	response, err := client.Do(req)
+	defer response.Body.Close()
 	if err != nil {
-		fmt.Println(err)
+		t.log(err)
+		return nil
 	}
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println(err)
+		t.log(err)
+		return nil
 	}
 	b := &bodyContent{}
 	err = json.Unmarshal(body, b)
 	if err != nil {
-		fmt.Println(err)
+		t.log(err)
+		return nil
 	}
-	b64 := strings.ReplaceAll(b.Data, "data:audio/x-mpeg;base64,", "")
+	var b64 string
+	// 删除base64前缀 data:audio/x-mpeg;base64,
+	if len(b.Data) > 25 {
+		b64 = b.Data[25:]
+	} else {
+		t.log(err)
+		return nil
+	}
 	audio, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
-		fmt.Println(err)
+		t.log(err)
+		return nil
 	}
-
 	return audio
 }

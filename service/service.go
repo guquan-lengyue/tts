@@ -25,10 +25,10 @@ const clientNum = 10
 func initClients(clientType string) {
 	for i := 0; i < clientNum; i++ {
 		if clientType == "baidu" {
-			ttsClients = append(ttsClients, baidu.NewBaiduTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+			ttsClients = append(ttsClients, baidu.NewClient(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
 		}
 		if clientType == "mstts" {
-			ttsClients = append(ttsClients, msedge.NewMsEdgeTTS(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
+			ttsClients = append(ttsClients, msedge.NewClient(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
 		}
 	}
 }

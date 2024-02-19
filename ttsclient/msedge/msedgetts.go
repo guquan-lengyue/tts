@@ -80,7 +80,7 @@ type MsEdgeTTS struct {
 	clientName string
 }
 
-func NewMsEdgeTTS(clientName string, enableLogger bool) src.ITtsClient {
+func NewClient(clientName string, enableLogger bool) src.ITtsClient {
 	lock.Lock()
 	defer lock.Unlock()
 	return &MsEdgeTTS{
