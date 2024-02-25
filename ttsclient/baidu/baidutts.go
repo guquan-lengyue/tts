@@ -49,9 +49,9 @@ func NewClient(clientName string, enableLogger bool) src.ITtsClient {
 	}
 }
 
-func (m *BaiduTTS) log(a ...any) {
-	if m.enableLogger {
-		log.Print(m.clientName + "----")
+func (t *BaiduTTS) log(a ...any) {
+	if t.enableLogger {
+		log.Print(t.clientName + "----")
 		log.Println(a...)
 	}
 }
@@ -90,7 +90,13 @@ func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			*buffer = t.tts(string(text[begin:end]))
+			for retry := 0; retry < 10; retry++ {
+				*buffer = t.tts(string(text[begin:end]))
+				if len(*buffer) > 0 {
+					break
+				}
+				time.Sleep(time.Millisecond * 200)
+			}
 		}()
 		// endregion
 	}
@@ -160,7 +166,7 @@ func (t *BaiduTTS) tts(text string) []byte {
 	if len(b.Data) > 25 {
 		b64 = b.Data[25:]
 	} else {
-		t.log(err)
+		t.log(fmt.Sprintf("请求:[%s]接收内容为空", text))
 		return nil
 	}
 	audio, err := base64.StdEncoding.DecodeString(b64)
