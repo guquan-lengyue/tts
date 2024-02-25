@@ -91,8 +91,9 @@ func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
 		go func() {
 			defer wg.Done()
 			for retry := 0; retry < 10; retry++ {
-				*buffer = t.tts(string(text[begin:end]))
-				if len(*buffer) > 0 {
+				tts := t.tts(string(text[begin:end]))
+				if len(tts) > 0 {
+					*buffer = tts
 					break
 				}
 				time.Sleep(time.Millisecond * 200)
