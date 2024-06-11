@@ -90,7 +90,7 @@ func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for retry := 0; retry < 10; retry++ {
+			for retry := 0; retry < 3; retry++ {
 				tts := t.tts(string(text[begin:end]))
 				if len(tts) > 0 {
 					*buffer = tts

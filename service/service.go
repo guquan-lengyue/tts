@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/guquan-lengyue/tts/assets"
 	"log"
 	"net/http"
 	"net/url"
@@ -70,13 +71,15 @@ func receive(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, map[string]error{"error": err})
 		return
 	}
-	for {
+	for i := 3; i > 0; i-- {
 		atomic.StoreInt32(&ban, (ban+1)%clientNum)
 		err = getTts(form, c, ttsClients[ban])
 		if err == nil {
-			break
+			return
 		}
 	}
+	c.Header("Context-Type", "Content-Type: audio/webm")
+	_, _ = c.Writer.Write(assets.ErrorTttWebm)
 }
 
 func getTts(form *body, c *gin.Context, tts ttsclient.ITtsClient) error {
