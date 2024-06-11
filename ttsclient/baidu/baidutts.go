@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	src "github.com/guquan-lengyue/ms_edge_tts/ttsclient"
+	src "github.com/guquan-lengyue/tts/ttsclient"
 )
 
 var _ src.ITtsClient = (*BaiduTTS)(nil)

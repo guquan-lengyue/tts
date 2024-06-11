@@ -1,6 +1,6 @@
-module github.com/guquan-lengyue/ms_edge_tts
+module github.com/guquan-lengyue/tts
 
-go 1.20
+go 1.22
 
 require (
 	github.com/gin-contrib/gzip v0.0.6

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	src "github.com/guquan-lengyue/ms_edge_tts/ttsclient"
+	src "github.com/guquan-lengyue/tts/ttsclient"
 )
 
 const trustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"

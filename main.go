@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/guquan-lengyue/ms_edge_tts/service"
+	"github.com/guquan-lengyue/tts/service"
 )
 
 func main() {

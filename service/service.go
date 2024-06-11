@@ -13,9 +13,9 @@ import (
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/guquan-lengyue/ms_edge_tts/ttsclient"
-	"github.com/guquan-lengyue/ms_edge_tts/ttsclient/baidu"
-	"github.com/guquan-lengyue/ms_edge_tts/ttsclient/msedge"
+	"github.com/guquan-lengyue/tts/ttsclient"
+	"github.com/guquan-lengyue/tts/ttsclient/baidu"
+	"github.com/guquan-lengyue/tts/ttsclient/msedge"
 )
 
 var ttsClients []ttsclient.ITtsClient
