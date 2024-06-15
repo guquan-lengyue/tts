@@ -193,9 +193,14 @@ func (m *MsEdgeTTS) SetClient(voiceName string, rate float32, volume float32) {
 	}
 }
 
-func (m *MsEdgeTTS) TextToSpeech(input string) chan []byte {
+func (m *MsEdgeTTS) TextToSpeech(input string) []byte {
 	m.overTime = overTime
-	return m.sendSsmlTemplate(input)
+	speech := m.sendSsmlTemplate(input)
+	buffer := bytes.Buffer{}
+	for i := range speech {
+		buffer.Write(i)
+	}
+	return buffer.Bytes()
 }
 
 func (m *MsEdgeTTS) sendSsmlTemplate(input string) chan []byte {
@@ -236,6 +241,7 @@ func (m *MsEdgeTTS) listen(out chan []byte) {
 			if recover() != nil {
 				m.log(recover())
 			}
+			close(out)
 		}()
 		for {
 			_, message, err := m.ws.ReadMessage()

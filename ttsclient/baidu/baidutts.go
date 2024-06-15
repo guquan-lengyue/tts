@@ -1,6 +1,7 @@
 package baidu
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -69,7 +70,16 @@ func (t *BaiduTTS) SetClient(voiceName string, rate float32, volume float32) {
 	t.voiceName = voiceName
 }
 
-func (t *BaiduTTS) TextToSpeech(input string) chan []byte {
+func (t *BaiduTTS) TextToSpeech(input string) []byte {
+	tts := t.getTTS(input)
+	buffer := bytes.Buffer{}
+	for t := range tts {
+		buffer.Write(t)
+	}
+	return buffer.Bytes()
+}
+
+func (t *BaiduTTS) getTTS(input string) chan []byte {
 	// 百度tts试用接口最大字数为200, 需要将input分段
 	text := []rune(input)
 	textLength := len(text)

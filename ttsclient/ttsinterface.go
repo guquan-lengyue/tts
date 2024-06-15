@@ -9,6 +9,6 @@ type ITtsClient interface {
 	SetClient(voiceName string, rate float32, volume float32)
 	// TextToSpeech 将调用tts客户端, 将input内容转换为音频, 音频内容将在返回值chan中异步返回, 音频结束后方法会主动关闭chan
 	// input 需要转为音频的文字
-	// return 异步返回音频内容
-	TextToSpeech(input string) chan []byte
+	// 返回音频内容
+	TextToSpeech(input string) []byte
 }

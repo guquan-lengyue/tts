@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/guquan-lengyue/tts/assets"
@@ -86,20 +85,19 @@ func getTts(form *body, c *gin.Context, tts ttsclient.ITtsClient) error {
 	tts.SetClient(form.VoiceName, form.Speed, 0)
 	log.Printf("request: %#v \n", form)
 	size := 0
-	audio := bytes.Buffer{}
-	for i := 0; i < 3 && size == 0; i++ {
-		audio.Reset()
+	for i := 0; i < 3; i++ {
 		speechCh := tts.TextToSpeech(form.Text)
-		c.Header("Context-Type", "Content-Type: audio/webm")
-		for ch := range speechCh {
-			size += len(ch)
-			audio.Write(ch)
+		size = len(speechCh)
+		if size == 0 {
+			continue
 		}
-		_, err := c.Writer.Write(audio.Bytes())
+		c.Header("Context-Type", "Content-Type: audio/webm")
+		_, err := c.Writer.Write(speechCh)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
 			break
 		}
+		break
 	}
 	log.Println("response size: ", size)
 	if size == 0 {
