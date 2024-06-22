@@ -4,8 +4,5 @@ builds:
     goos:
       - linux
       - windows
-      - darwin
-      - android
     goarch:
       - amd64
-      - arm64
