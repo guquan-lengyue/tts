@@ -155,11 +155,11 @@ func (t *BaiduTTS) tts(text string) []byte {
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	response, err := client.Do(req)
-	defer response.Body.Close()
 	if err != nil {
-		t.log(err)
+		t.log("baidutts 请求错误", err)
 		return nil
 	}
+	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
