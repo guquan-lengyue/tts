@@ -10,15 +10,13 @@ const test = "“赠尹兆先与君结识于谷雨之后，暂别于芒种之前
 func TestBaiduTTS_TextToSpeech(t *testing.T) {
 	client := NewClient("1", true)
 	client.SetClient("5003", 6, 2)
-	a := client.TextToSpeech(test)
-	file, err := os.OpenFile("a.mp3", os.O_CREATE|os.O_APPEND, 0666)
+	bytes := client.TextToSpeech(test)
+	file, err := os.OpenFile("a.mp3", os.O_CREATE|os.O_RDWR, os.ModeAppend|os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
-	for bytes := range a {
-		_, err = file.Write(bytes)
-		if err != nil {
-			panic(err)
-		}
+	_, err = file.Write(bytes)
+	if err != nil {
+		panic(err)
 	}
 }
