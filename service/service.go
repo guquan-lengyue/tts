@@ -3,13 +3,14 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/guquan-lengyue/tts/assets"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"sync/atomic"
+
+	"github.com/guquan-lengyue/tts/assets"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -55,6 +56,7 @@ type body struct {
 	Text      string  `json:"tex"`
 	Speed     float32 `json:"spd"`
 	VoiceName string  `json:"vn"`
+	Volume    float32 `json:"v"`
 }
 
 var ban int32 = 0
@@ -82,7 +84,7 @@ func receive(c *gin.Context) {
 }
 
 func getTts(form *body, c *gin.Context, tts ttsclient.ITtsClient) error {
-	tts.SetClient(form.VoiceName, form.Speed, 0)
+	tts.SetClient(form.VoiceName, form.Speed, form.Volume)
 	log.Printf("request: %#v \n", form)
 	size := 0
 	for i := 0; i < 3; i++ {
@@ -116,12 +118,21 @@ func parseBody(b []byte) (*body, error) {
 	}
 	spd := query.Get("spd")
 	speed, err := strconv.ParseFloat(spd, 32)
+	if err != nil {
+		return nil, err
+	}
+	volume := query.Get("v")
+	if err != nil {
+		return nil, err
+	}
+	v, err := strconv.ParseFloat(volume, 32)
+	if err != nil {
+		return nil, err
+	}
 	rst := &body{
 		Speed:     float32(speed),
 		VoiceName: query.Get("vn"),
-	}
-	if err != nil {
-		return nil, err
+		Volume:    float32(v),
 	}
 	text := query.Get("tex")
 	text, err = url.QueryUnescape(text)

@@ -135,7 +135,7 @@ func (t *BaiduTTS) tts(text string) []byte {
 	s := urlUtil.QueryEscape(text)
 	s = urlUtil.QueryEscape(s)
 
-	form := fmt.Sprintf("type=tns&per=%s&spd=%d&pit=5&vol=5&aue=6&tex=%s", t.voiceName, t.rate, s)
+	form := fmt.Sprintf("type=tns&per=%s&spd=%d&pit=5&vol=%f&aue=6&tex=%s", t.voiceName, t.rate, t.volume, s)
 	payload := strings.NewReader(form)
 
 	client := &http.Client{}
