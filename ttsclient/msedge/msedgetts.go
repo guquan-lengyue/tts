@@ -56,9 +56,9 @@ var lock sync.Mutex
 const heartBeatTime = 28 * time.Second
 const overTime = 15 * time.Minute
 
-var _ src.ITtsClient = (*MsEdgeTTS)(nil)
+var _ src.ITtsClient = (*TTS)(nil)
 
-type MsEdgeTTS struct {
+type TTS struct {
 	// enableLogger 是否打印日志
 	enableLogger bool
 	// outputFormat 音频格式
@@ -83,17 +83,17 @@ type MsEdgeTTS struct {
 func NewClient(clientName string, enableLogger bool) src.ITtsClient {
 	lock.Lock()
 	defer lock.Unlock()
-	return &MsEdgeTTS{
+	return &TTS{
 		enableLogger: enableLogger,
 		clientName:   clientName,
 	}
 }
-func (m *MsEdgeTTS) closeMs() {
+func (m *TTS) closeMs() {
 	m.timer.Stop()
 	m.ws.Close()
 	m.ws = nil
 }
-func (m *MsEdgeTTS) ttl() {
+func (m *TTS) ttl() {
 	if m.timer != nil {
 		m.timer.Stop()
 	}
@@ -127,7 +127,7 @@ func (m *MsEdgeTTS) ttl() {
 	})
 }
 
-func (m *MsEdgeTTS) log(a ...any) {
+func (m *TTS) log(a ...any) {
 	if m.enableLogger {
 		log.Println(m.clientName + "--------------------")
 		log.Println(a...)
@@ -135,7 +135,7 @@ func (m *MsEdgeTTS) log(a ...any) {
 }
 
 // initWsClient 初始化ws客户端
-func (m *MsEdgeTTS) initWsClient() error {
+func (m *TTS) initWsClient() error {
 	header := http.Header{}
 	u := url.URL{
 		Scheme:   "wss",
@@ -161,7 +161,7 @@ func (m *MsEdgeTTS) initWsClient() error {
 	return nil
 }
 
-func (m *MsEdgeTTS) SetClient(voiceName string, rate float32, volume float32) {
+func (m *TTS) SetClient(voiceName string, rate float32, volume float32) {
 	outputFormat := WEBM_24KHZ_16BIT_MONO_OPUS
 	var pitch float32 = 200
 	oldVoiceName := m.voiceName
@@ -193,7 +193,7 @@ func (m *MsEdgeTTS) SetClient(voiceName string, rate float32, volume float32) {
 	}
 }
 
-func (m *MsEdgeTTS) TextToSpeech(input string) []byte {
+func (m *TTS) TextToSpeech(input string) []byte {
 	m.overTime = overTime
 	speech := m.sendSsmlTemplate(input)
 	buffer := bytes.Buffer{}
@@ -203,7 +203,7 @@ func (m *MsEdgeTTS) TextToSpeech(input string) []byte {
 	return buffer.Bytes()
 }
 
-func (m *MsEdgeTTS) sendSsmlTemplate(input string) chan []byte {
+func (m *TTS) sendSsmlTemplate(input string) chan []byte {
 	ssmlTemplate := m.ssmlTemplate(input)
 	m.send(ssmlTemplate)
 	buf := make(chan []byte)
@@ -212,7 +212,7 @@ func (m *MsEdgeTTS) sendSsmlTemplate(input string) chan []byte {
 }
 
 // send 发送消息
-func (m *MsEdgeTTS) send(message string) {
+func (m *TTS) send(message string) {
 	msg := strings.ReplaceAll(message, "\t", "")
 	msg = strings.ReplaceAll(msg, "\n", "\r\n")
 	msg = strings.Trim(msg, "\r\n")
@@ -235,7 +235,7 @@ func (m *MsEdgeTTS) send(message string) {
 }
 
 // listen 接收数据
-func (m *MsEdgeTTS) listen(out chan []byte) {
+func (m *TTS) listen(out chan []byte) {
 	go func() {
 		defer func() {
 			if recover() != nil {
@@ -264,7 +264,7 @@ func (m *MsEdgeTTS) listen(out chan []byte) {
 	}()
 }
 
-func (m *MsEdgeTTS) ssmlTemplate(input string) string {
+func (m *TTS) ssmlTemplate(input string) string {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {

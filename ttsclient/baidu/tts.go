@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	urlUtil "net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -16,9 +17,9 @@ import (
 	src "github.com/guquan-lengyue/tts/ttsclient"
 )
 
-var _ src.ITtsClient = (*BaiduTTS)(nil)
+var _ src.ITtsClient = (*TTS)(nil)
 
-type BaiduTTS struct {
+type TTS struct {
 	// enableLogger 是否打印日志
 	enableLogger bool
 	// 客户端名称
@@ -44,20 +45,20 @@ type bodyContent struct {
 // clientName 客户端标识 主要用于打印日志时区分日志来源
 // enableLogger 是否打印相识日志标识
 func NewClient(clientName string, enableLogger bool) src.ITtsClient {
-	return &BaiduTTS{
+	return &TTS{
 		enableLogger: enableLogger,
 		clientName:   clientName,
 	}
 }
 
-func (t *BaiduTTS) log(a ...any) {
+func (t *TTS) log(a ...any) {
 	if t.enableLogger {
 		log.Print(t.clientName + "----")
 		log.Println(a...)
 	}
 }
 
-func (t *BaiduTTS) SetClient(voiceName string, rate float32, volume float32) {
+func (t *TTS) SetClient(voiceName string, rate float32, volume float32) {
 	// 百度tts朗读速度只有1-10 10级
 	t.rate = int(rate)
 	if t.rate > 10 {
@@ -70,7 +71,7 @@ func (t *BaiduTTS) SetClient(voiceName string, rate float32, volume float32) {
 	t.voiceName = voiceName
 }
 
-func (t *BaiduTTS) TextToSpeech(input string) []byte {
+func (t *TTS) TextToSpeech(input string) []byte {
 	tts := t.getTTS(input)
 	buffer := bytes.Buffer{}
 	for t := range tts {
@@ -79,7 +80,7 @@ func (t *BaiduTTS) TextToSpeech(input string) []byte {
 	return buffer.Bytes()
 }
 
-func (t *BaiduTTS) getTTS(input string) chan []byte {
+func (t *TTS) getTTS(input string) chan []byte {
 	// 百度tts试用接口最大字数为200, 需要将input分段
 	text := []rune(input)
 	textLength := len(text)
@@ -87,29 +88,26 @@ func (t *BaiduTTS) getTTS(input string) chan []byte {
 	// 主要是为了分段后异步请求tts且能保持返回结果为请求时的顺序, 保持朗读内容顺序正常
 	ttsRst := make([]*[]byte, 0)
 	// wg 用于等待所有input分段tts请求结束
+	patchBegin := 0
+	patchEnd := 0
+	splitChar := []rune(".,。，；;？?！!")
 	var wg sync.WaitGroup
-	for idx := 0; idx < textLength; idx += 200 {
-		end := idx + 200
-		if end > textLength {
-			end = textLength
+	for i, r := range text {
+		if slices.Contains(splitChar, r) {
+			patchEnd = i
 		}
-		begin := idx
-		// region 异步请求input分段tts内容, 将内容按顺序存放到相应位置
-		var buffer = new([]byte)
-		ttsRst = append(ttsRst, buffer)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for retry := 0; retry < 3; retry++ {
-				tts := t.tts(string(text[begin:end]))
-				if len(tts) > 0 {
-					*buffer = tts
-					break
-				}
-				time.Sleep(time.Millisecond * 200)
-			}
-		}()
-		// endregion
+		if textLength-1 == i {
+			var buffer = new([]byte)
+			ttsRst = append(ttsRst, buffer)
+			wg.Add(1)
+			t.asyncTts(&wg, string(text[patchBegin:i+1]), buffer)
+		} else if i-patchBegin > 200 && patchEnd > patchBegin {
+			var buffer = new([]byte)
+			ttsRst = append(ttsRst, buffer)
+			wg.Add(1)
+			t.asyncTts(&wg, string(text[patchBegin:patchEnd+1]), buffer)
+			patchBegin = patchEnd + 1
+		}
 	}
 	// 同步等待tts数据
 	bch := make(chan []byte, 1)
@@ -127,9 +125,21 @@ func (t *BaiduTTS) getTTS(input string) chan []byte {
 	return bch
 }
 
+func (t *TTS) asyncTts(wg *sync.WaitGroup, text string, outBuffer *[]byte) {
+	defer wg.Done()
+	for retry := 0; retry < 3; retry++ {
+		tts := t.tts(text)
+		if len(tts) > 0 {
+			*outBuffer = tts
+			break
+		}
+		time.Sleep(time.Millisecond * 200)
+	}
+}
+
 // tts 请求百度tts试用接口将text转为音频
 // 当发生错误, 或者接口返回音频内容为空时, 返回值为nil
-func (t *BaiduTTS) tts(text string) []byte {
+func (t *TTS) tts(text string) []byte {
 	// 根据百度tts接口文档, 将text内容进行2次url编码
 	// 2次url编码为了将特殊字符能够正确传递
 	s := urlUtil.QueryEscape(text)
