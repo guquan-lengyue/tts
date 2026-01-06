@@ -24,7 +24,7 @@ var ttsClients []ttsclient.ITtsClient
 const clientNum = 10
 
 func initClients(clientType string) {
-	for i := 0; i < clientNum; i++ {
+	for i := range clientNum {
 		if clientType == "baidu" {
 			ttsClients = append(ttsClients, baidu.NewClient(fmt.Sprintf("客户端[%d]", i), gin.Mode() == gin.DebugMode))
 		}
@@ -87,13 +87,13 @@ func getTts(form *body, c *gin.Context, tts ttsclient.ITtsClient) error {
 	tts.SetClient(form.VoiceName, form.Speed, form.Volume)
 	log.Printf("request: %#v \n", form)
 	size := 0
-	for i := 0; i < 3; i++ {
+	for _ = range 3 {
 		speechCh := tts.TextToSpeech(form.Text)
 		size = len(speechCh)
 		if size == 0 {
 			continue
 		}
-		c.Header("Context-Type", "Content-Type: audio/webm")
+		c.Header("Content-Type", "audio/wav")
 		_, err := c.Writer.Write(speechCh)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, map[string]error{"error": err})
